@@ -17,3 +17,10 @@ outputs/*.csv
 outputs/*.json
 outputs/*.png
 !outputs/.gitkeep
+
+# User config (local paths)
+.battery-allocation.json
+
+# Uploaded data (user files — keep folder)
+data/uploads/*
+!data/uploads/.gitkeep

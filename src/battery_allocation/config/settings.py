@@ -88,10 +88,18 @@ class Settings(BaseSettings):
         return self.config_dir or self.project_root / "config"
 
     def resolved_battery_csv(self) -> Path:
-        return self.battery_csv or self.project_root / "data" / "Problem_1_Battery_Fleet_200_Packs.csv"
+        from battery_allocation.data.discovery import resolve_data_file
+
+        if self.battery_csv:
+            return self.battery_csv
+        return resolve_data_file(self.project_root, "battery")
 
     def resolved_vehicle_csv(self) -> Path:
-        return self.vehicle_csv or self.project_root / "data" / "Problem_1_Vehicle_Demand_50_Requests.csv"
+        from battery_allocation.data.discovery import resolve_data_file
+
+        if self.vehicle_csv:
+            return self.vehicle_csv
+        return resolve_data_file(self.project_root, "vehicle")
 
     def resolved_output_dir(self) -> Path:
         return self.output_dir or self.project_root / "outputs"

@@ -61,7 +61,7 @@ def run_pipeline_endpoint(body: PipelineRequest) -> PipelineResponse:
             twist=twist_ctx,
             skip_visualizations=body.skip_visualizations,
         )
-    except DataLoadError as exc:
+    except (DataLoadError, FileNotFoundError, ValueError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except RuntimeError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc

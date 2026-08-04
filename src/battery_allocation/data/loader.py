@@ -10,7 +10,9 @@ from pydantic import ValidationError
 
 from battery_allocation.config.settings import get_settings
 from battery_allocation.core.models import Battery, VehiclePriority, VehicleRequest
+from battery_allocation.data.discovery import resolve_data_file
 from battery_allocation.data.schemas import BatteryRow, VehicleRequestRow
+from battery_allocation.data.spreadsheet import read_spreadsheet
 
 logger = logging.getLogger(__name__)
 
@@ -36,17 +38,19 @@ class DataLoadError(Exception):
 def _validate_columns(df: pd.DataFrame, required: list[str], path: Path) -> None:
     missing = [c for c in required if c not in df.columns]
     if missing:
-        raise DataLoadError(f"Missing columns in {path}: {missing}")
+        raise DataLoadError(f"Missing columns in {path.name}: {missing}")
 
 
-def load_batteries(path: Path | None = None) -> list[Battery]:
+def load_batteries(
+    path: Path | None = None,
+    *,
+    use_sample: bool = False,
+) -> list[Battery]:
     settings = get_settings()
-    csv_path = path or settings.resolved_battery_csv()
-    if not csv_path.exists():
-        raise DataLoadError(f"Battery CSV not found: {csv_path}")
+    data_path = resolve_data_file(settings.project_root, "battery", path, use_sample=use_sample)
 
-    df = pd.read_csv(csv_path)
-    _validate_columns(df, BATTERY_COLUMNS, csv_path)
+    df = read_spreadsheet(data_path)
+    _validate_columns(df, BATTERY_COLUMNS, data_path)
 
     batteries: list[Battery] = []
     for idx, row in df.iterrows():
@@ -54,7 +58,7 @@ def load_batteries(path: Path | None = None) -> list[Battery]:
             row_dict = {str(k): v for k, v in row.to_dict().items()}
             validated = BatteryRow(**row_dict)
         except ValidationError as exc:
-            raise DataLoadError(f"Invalid battery row {idx} in {csv_path}: {exc}") from exc
+            raise DataLoadError(f"Invalid battery row {idx} in {data_path.name}: {exc}") from exc
 
         batteries.append(
             Battery(
@@ -75,18 +79,20 @@ def load_batteries(path: Path | None = None) -> list[Battery]:
             )
         )
 
-    logger.info("Loaded %d batteries from %s", len(batteries), csv_path)
+    logger.info("Loaded %d batteries from %s", len(batteries), data_path)
     return batteries
 
 
-def load_vehicle_requests(path: Path | None = None) -> list[VehicleRequest]:
+def load_vehicle_requests(
+    path: Path | None = None,
+    *,
+    use_sample: bool = False,
+) -> list[VehicleRequest]:
     settings = get_settings()
-    csv_path = path or settings.resolved_vehicle_csv()
-    if not csv_path.exists():
-        raise DataLoadError(f"Vehicle CSV not found: {csv_path}")
+    data_path = resolve_data_file(settings.project_root, "vehicle", path, use_sample=use_sample)
 
-    df = pd.read_csv(csv_path)
-    _validate_columns(df, VEHICLE_COLUMNS, csv_path)
+    df = read_spreadsheet(data_path)
+    _validate_columns(df, VEHICLE_COLUMNS, data_path)
 
     requests: list[VehicleRequest] = []
     for idx, row in df.iterrows():
@@ -95,7 +101,7 @@ def load_vehicle_requests(path: Path | None = None) -> list[VehicleRequest]:
             validated = VehicleRequestRow(**row_dict)
             priority = VehiclePriority(validated.priority)
         except (ValidationError, ValueError) as exc:
-            raise DataLoadError(f"Invalid vehicle row {idx} in {csv_path}: {exc}") from exc
+            raise DataLoadError(f"Invalid vehicle row {idx} in {data_path.name}: {exc}") from exc
 
         requests.append(
             VehicleRequest(
@@ -110,5 +116,18 @@ def load_vehicle_requests(path: Path | None = None) -> list[VehicleRequest]:
             )
         )
 
-    logger.info("Loaded %d vehicle requests from %s", len(requests), csv_path)
+    logger.info("Loaded %d vehicle requests from %s", len(requests), data_path)
     return requests
+
+
+def validate_data_files(battery_path: Path, vehicle_path: Path) -> dict[str, object]:
+    """Load and validate files without running the full pipeline."""
+    batteries = load_batteries(battery_path)
+    requests = load_vehicle_requests(vehicle_path)
+    return {
+        "battery_file": str(battery_path),
+        "vehicle_file": str(vehicle_path),
+        "battery_count": len(batteries),
+        "vehicle_count": len(requests),
+        "valid": True,
+    }

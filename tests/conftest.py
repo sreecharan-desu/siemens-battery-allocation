@@ -3,10 +3,20 @@
 from __future__ import annotations
 
 from datetime import datetime
+from pathlib import Path
 
 import pytest
 
 from battery_allocation.core.models import Battery, VehiclePriority, VehicleRequest
+
+
+@pytest.fixture(scope="session")
+def project_root() -> Path:
+    """Repository root (contains pyproject.toml and data/)."""
+    root = Path(__file__).resolve().parents[1]
+    assert (root / "pyproject.toml").is_file()
+    assert (root / "data").is_dir()
+    return root
 
 
 @pytest.fixture
