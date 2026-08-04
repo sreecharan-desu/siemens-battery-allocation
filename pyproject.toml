@@ -38,8 +38,10 @@ dev = [
     "httpx2>=2.9.0",
     "mypy>=1.8.0",
     "pandas-stubs>=2.1.0",
+    "pillow>=10.0.0",
     "pytest>=8.0.0",
     "pytest-cov>=4.1.0",
+    "python-docx>=1.1.0",
     "ruff>=0.4.0",
     "types-PyYAML>=6.0.0",
 ]
