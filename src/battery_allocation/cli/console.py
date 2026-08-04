@@ -1,4 +1,4 @@
-"""Rich console helpers for CLI output."""
+"""CLI output — minimal, tool-style formatting."""
 
 from __future__ import annotations
 
@@ -7,133 +7,83 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import TypeVar
 
-from rich import box
-from rich.align import Align
-from rich.console import Console, Group
-from rich.panel import Panel
-from rich.rule import Rule
+from rich.console import Console
 from rich.status import Status
 from rich.table import Table
-from rich.text import Text
 
 from battery_allocation import __version__
 
-console = Console()
+console = Console(highlight=False, soft_wrap=True)
 T = TypeVar("T")
 
 MENU_ITEMS: list[tuple[str, str, str]] = [
-    ("1", "Run pipeline", "Use your CSV or Excel files"),
-    ("2", "Quick demo", "Bundled sample competition data"),
-    ("3", "Upload file", "Add CSV/Excel to data/uploads/"),
-    ("4", "Browse files", "See all discoverable data files"),
-    ("5", "Validate data", "Check files without running pipeline"),
-    ("6", "API server", "Start REST API + docs"),
-    ("7", "Help", "Command reference"),
-    ("q", "Quit", "Exit the CLI"),
+    ("1", "run", "Run pipeline with your data files"),
+    ("2", "demo", "Run with bundled sample data"),
+    ("3", "upload", "Upload a CSV or Excel file"),
+    ("4", "files", "List available data files"),
+    ("5", "validate", "Validate data without running"),
+    ("6", "serve", "Start API server"),
+    ("7", "help", "Show command reference"),
+    ("q", "quit", "Exit"),
 ]
 
 
 def print_banner() -> None:
-    title = Text()
-    title.append("⚡ ", style="bold yellow")
-    title.append("Battery Allocation", style="bold cyan")
-    title.append(f"  v{__version__}", style="dim")
-
-    subtitle = Text("Classify  ·  Score  ·  Allocate  ·  Report", style="dim italic", justify="center")
-
-    console.print()
-    console.print(
-        Panel(
-            Align.center(Group(title, "", subtitle)),
-            border_style="cyan",
-            box=box.ROUNDED,
-            padding=(1, 4),
-        )
-    )
+    console.print(f"battery-allocation {__version__}")
+    console.print("[dim]Battery health assessment and dynamic allocation[/dim]")
     console.print()
 
 
 def print_status_panel(battery: str | None = None, vehicle: str | None = None) -> None:
-    table = Table.grid(padding=(0, 2))
-    table.add_column(style="dim")
-    table.add_column()
-
-    table.add_row("Battery", battery or "[dim]not set[/dim]")
-    table.add_row("Vehicle", vehicle or "[dim]not set[/dim]")
-
-    console.print(Panel(table, title="[bold]Active data[/bold]", border_style="blue", box=box.ROUNDED))
+    console.print("[dim]Context[/dim]")
+    console.print(f"  battery   {battery or '-'}")
+    console.print(f"  vehicle   {vehicle or '-'}")
     console.print()
 
 
 def print_menu() -> None:
-    table = Table(
-        title="[bold]What would you like to do?[/bold]",
-        show_header=True,
-        header_style="bold magenta",
-        box=box.SIMPLE_HEAD,
-        padding=(0, 1),
-        expand=False,
-    )
-    table.add_column("Key", style="bold cyan", width=4, justify="center")
-    table.add_column("Action", style="bold white")
-    table.add_column("Description", style="dim")
-
-    for key, action, desc in MENU_ITEMS:
-        table.add_row(key, action, desc)
-
-    console.print(table)
+    console.print("[dim]Commands[/dim]")
+    for key, cmd, desc in MENU_ITEMS:
+        console.print(f"  {key:<3} {cmd:<10} {desc}")
     console.print()
 
 
-def print_divider(title: str = "") -> None:
-    console.print(Rule(title, style="dim"))
+def print_section(title: str) -> None:
+    console.print()
+    console.print(f"[dim]{title}[/dim]")
 
 
-def print_success(message: str) -> None:
-    console.print(Panel(f"[bold green]✓[/bold green]  {message}", border_style="green", box=box.ROUNDED))
+def print_ok(message: str) -> None:
+    console.print(f"ok  {message}")
 
 
 def print_error(message: str) -> None:
-    console.print(Panel(f"[bold red]✗[/bold red]  {message}", border_style="red", box=box.ROUNDED))
+    console.print(f"error  {message}")
 
 
-def print_info(message: str) -> None:
-    console.print(f"[blue]ℹ[/blue]  {message}")
+def print_note(message: str) -> None:
+    console.print(f"[dim]{message}[/dim]")
 
 
 def _format_metric(label: str, proposed: object, baseline: object) -> tuple[str, str, str]:
-    p_str = str(proposed) if proposed is not None else "—"
-    b_str = str(baseline) if baseline is not None else "—"
-
-    style_p = ""
-    if isinstance(proposed, (int, float)) and isinstance(baseline, (int, float)):
-        if label in {"Unsafe allocations", "Vehicles unserved"}:
-            style_p = "green" if proposed <= baseline else "red"
-        elif label in {"Vehicles served", "High/Critical served %", "Avg SoH allocated", "Avg suitability score"}:
-            style_p = "green" if proposed >= baseline else "yellow"
-
-    return label, f"[{style_p}]{p_str}[/{style_p}]" if style_p else p_str, b_str
+    p_str = str(proposed) if proposed is not None else "-"
+    b_str = str(baseline) if baseline is not None else "-"
+    return label, p_str, b_str
 
 
 def print_metrics_table(proposed: dict[str, object], baseline: dict[str, object]) -> None:
-    table = Table(
-        title="[bold]Allocation Results[/bold]",
-        show_header=True,
-        header_style="bold magenta",
-        box=box.ROUNDED,
-        padding=(0, 1),
-    )
-    table.add_column("Metric", style="cyan", min_width=22)
-    table.add_column("Proposed", justify="right", min_width=10)
-    table.add_column("Baseline", justify="right", min_width=10)
+    table = Table(show_header=True, header_style="dim", box=None, padding=(0, 2))
+    table.add_column("metric", min_width=24)
+    table.add_column("proposed", justify="right")
+    table.add_column("baseline", justify="right")
 
     rows = [
-        ("Vehicles served", "vehicles_served"),
-        ("Vehicles unserved", "vehicles_unserved"),
-        ("High/Critical served %", "high_critical_served_pct"),
-        ("Unsafe allocations", "unsafe_allocations"),
-        ("Avg SoH allocated", "avg_soh_allocated"),
-        ("Avg suitability score", "avg_suitability_score"),
+        ("vehicles served", "vehicles_served"),
+        ("vehicles unserved", "vehicles_unserved"),
+        ("high/critical served %", "high_critical_served_pct"),
+        ("unsafe allocations", "unsafe_allocations"),
+        ("avg SoH allocated", "avg_soh_allocated"),
+        ("avg suitability score", "avg_suitability_score"),
     ]
     for label, key in rows:
         p_val = proposed.get(key)
@@ -142,73 +92,68 @@ def print_metrics_table(proposed: dict[str, object], baseline: dict[str, object]
         table.add_row(lbl, p_fmt, b_fmt)
 
     console.print()
+    console.print("[dim]Results[/dim]")
     console.print(table)
     console.print()
 
 
 def print_file_list(files: list[Path], title: str) -> None:
-    table = Table(title=title, show_header=True, header_style="bold", box=box.SIMPLE)
-    table.add_column("#", style="dim", width=4, justify="right")
-    table.add_column("File", style="cyan")
-    table.add_column("Type", justify="center", width=8)
-    table.add_column("Size", justify="right", width=10)
+    table = Table(show_header=True, header_style="dim", box=None, padding=(0, 1))
+    table.add_column("#", justify="right", width=3)
+    table.add_column("file")
+    table.add_column("type", width=6)
+    table.add_column("size", justify="right", width=10)
 
     for i, f in enumerate(files, 1):
         size_kb = f.stat().st_size / 1024
-        ext = f.suffix.upper().lstrip(".") or "?"
+        ext = f.suffix.lower().lstrip(".") or "-"
         table.add_row(str(i), f.name, ext, f"{size_kb:.1f} KB")
 
     console.print()
+    console.print(f"[dim]{title}[/dim]")
     console.print(table)
     console.print()
 
 
 def print_outputs(paths: list[str]) -> None:
-    table = Table(title="[bold]Generated outputs[/bold]", box=box.SIMPLE, show_header=True)
-    table.add_column("File", style="green")
+    console.print("[dim]Outputs[/dim]")
     for path in paths:
-        table.add_row(Path(path).name)
-    console.print(table)
+        console.print(f"  {path}")
     console.print()
 
 
 def print_help() -> None:
-    help_text = """
-[bold cyan]Interactive[/bold cyan]
-  battery-allocation              Open this menu
-
-[bold cyan]Pipeline[/bold cyan]
-  battery-allocation run          Auto-discover and run
-  battery-allocation run --sample Use bundled datasets
-  battery-allocation run -b fleet.xlsx -v demand.csv
-
-[bold cyan]Data[/bold cyan]
-  battery-allocation upload FILE  Upload CSV/Excel
-  battery-allocation files        List data files
-  battery-allocation validate     Validate without running
-
-[bold cyan]Other[/bold cyan]
-  battery-allocation serve        Start REST API
-  battery-allocation version      Show version
-"""
-    console.print(
-        Panel(
-            help_text.strip(),
-            title="[bold]Command reference[/bold]",
-            border_style="cyan",
-            box=box.ROUNDED,
-        )
-    )
+    console.print()
+    console.print("[dim]Commands[/dim]")
+    lines = [
+        ("battery-allocation", "interactive menu"),
+        ("battery-allocation run", "run pipeline (auto-discover data)"),
+        ("battery-allocation run --sample", "run with bundled sample data"),
+        ("battery-allocation run -b FILE -v FILE", "run with explicit files"),
+        ("battery-allocation upload FILE", "upload CSV or Excel"),
+        ("battery-allocation files", "list data files"),
+        ("battery-allocation validate", "validate data files"),
+        ("battery-allocation serve", "start REST API"),
+        ("battery-allocation version", "print version"),
+    ]
+    for cmd, desc in lines:
+        console.print(f"  {cmd:<40} {desc}")
     console.print()
 
 
 @contextmanager
 def spinner(message: str) -> Iterator[None]:
-    with Status(f"[bold cyan]{message}[/bold cyan]", console=console, spinner="dots") as status:
+    with Status(f"  {message}", console=console, spinner="line") as status:
         yield
-        status.update(f"[bold green]✓[/bold green] {message}")
+        status.stop()
 
 
 def run_with_spinner(message: str, func: Callable[[], T]) -> T:
     with spinner(message):
         return func()
+
+
+# Backward-compatible aliases used elsewhere
+print_divider = print_section
+print_success = print_ok
+print_info = print_note

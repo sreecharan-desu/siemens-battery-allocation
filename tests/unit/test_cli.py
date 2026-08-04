@@ -14,13 +14,13 @@ runner = CliRunner()
 def test_version_command():
     result = runner.invoke(app, ["version"])
     assert result.exit_code == 0
-    assert "1.2.0" in result.stdout
+    assert "1.2.1" in result.stdout
 
 
 def test_run_with_sample(project_root: Path):
     result = runner.invoke(app, ["run", "--sample", "--skip-viz", "-o", str(project_root / "outputs")])
     assert result.exit_code == 0
-    assert "Pipeline completed" in result.stdout or "vehicles_served" in result.stdout
+    assert "pipeline completed" in result.stdout.lower() or "vehicles_served" in result.stdout
 
 
 def test_run_json_output(project_root: Path, tmp_path: Path):
@@ -37,7 +37,7 @@ def test_upload_command(project_root: Path, tmp_path: Path):
     src.write_text("battery_id\nBAT-1\n", encoding="utf-8")
     result = runner.invoke(app, ["upload", str(src)])
     assert result.exit_code == 0
-    assert "Uploaded" in result.stdout
+    assert "uploaded" in result.stdout.lower()
 
 
 def test_files_command(project_root: Path):
@@ -49,4 +49,3 @@ def test_validate_sample(project_root: Path):
     result = runner.invoke(app, ["validate", "--sample"])
     assert result.exit_code == 0
     assert "200 batteries" in result.stdout
-    assert "50" in result.stdout

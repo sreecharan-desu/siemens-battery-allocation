@@ -1,7 +1,7 @@
 # Battery Health Assessment and Dynamic Allocation
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
-[![Version](https://img.shields.io/badge/version-1.2.0-green.svg)](https://github.com/sreecharan-desu/siemens-battery-allocation/releases)
+[![Version](https://img.shields.io/badge/version-1.2.1-green.svg)](https://github.com/sreecharan-desu/siemens-battery-allocation/releases)
 [![CI](https://github.com/sreecharan-desu/siemens-battery-allocation/actions/workflows/ci.yml/badge.svg)](https://github.com/sreecharan-desu/siemens-battery-allocation/actions/workflows/ci.yml)
 
 **Production-grade battery allocation for light EV battery-swapping stations.**
@@ -48,29 +48,26 @@ git clone https://github.com/sreecharan-desu/siemens-battery-allocation.git && c
 
 ## Interactive CLI
 
-Run `battery-allocation` with no arguments — a clean, menu-driven experience:
-
-- **Active data panel** — shows your last-used battery & vehicle files
-- **Guided file picker** — browse, upload, or type a path
-- **Live progress spinner** — during pipeline runs
-- **Color-coded results** — proposed vs baseline metrics at a glance
-- **Confirm before quit** — no accidental exits
+Run `battery-allocation` with no arguments:
 
 ```
-  ⚡ Battery Allocation  v1.2.0
-     Classify  ·  Score  ·  Allocate  ·  Report
+battery-allocation 1.2.1
+Battery health assessment and dynamic allocation
 
-  ┌─ Active data ─────────────────────────┐
-  │ Battery   Problem_1_Battery_Fleet...  │
-  │ Vehicle   Problem_1_Vehicle_Demand... │
-  └───────────────────────────────────────┘
+Context
+  battery   Problem_1_Battery_Fleet_200_Packs.csv
+  vehicle   Problem_1_Vehicle_Demand_50_Requests.csv
 
-  Key │ Action        │ Description
-  ────┼───────────────┼──────────────────────────
-   1  │ Run pipeline  │ Use your CSV or Excel files
-   2  │ Quick demo    │ Bundled sample competition data
-   ...
+Commands
+  1   run        Run pipeline with your data files
+  2   demo       Run with bundled sample data
+  3   upload     Upload a CSV or Excel file
+  ...
+
+>
 ```
+
+Plain, tool-style output — no decorative panels or color noise. Commands accept numbers or names (`run`, `demo`, `quit`).
 
 ## Quick commands
 

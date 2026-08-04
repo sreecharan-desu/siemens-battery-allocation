@@ -10,7 +10,14 @@ import typer
 import uvicorn
 
 from battery_allocation import __version__
-from battery_allocation.cli.console import console, print_metrics_table
+from battery_allocation.cli.console import (
+    console,
+    print_error,
+    print_metrics_table,
+    print_note,
+    print_ok,
+    print_outputs,
+)
 from battery_allocation.cli.interactive import interactive_menu
 from battery_allocation.config.settings import get_settings
 from battery_allocation.core.twist import from_dict
@@ -71,7 +78,7 @@ def run_cmd(
         vehicle_path = resolve_data_file(settings.project_root, "vehicle", vehicle, use_sample=sample)
         save_user_config(settings.project_root, battery_path, vehicle_path)
     except (FileNotFoundError, ValueError) as exc:
-        console.print(f"[red]Error:[/red] {exc}")
+        print_error(str(exc))
         raise typer.Exit(code=1) from exc
 
     twist = from_dict(json.loads(twist_json)) if twist_json else None
@@ -84,7 +91,7 @@ def run_cmd(
             skip_visualizations=skip_viz,
         )
     except (DataLoadError, RuntimeError) as exc:
-        console.print(f"[red]Pipeline failed:[/red] {exc}")
+        print_error(str(exc))
         raise typer.Exit(code=1) from exc
 
     if json_output:
@@ -95,11 +102,9 @@ def run_cmd(
             )
         )
     else:
-        console.print("\n[bold green]✓ Pipeline completed successfully[/bold green]\n")
+        print_ok("pipeline completed")
         print_metrics_table(result.proposed_metrics, result.baseline_metrics)
-        console.print("\n[bold]Outputs:[/bold]")
-        for path in result.output_paths:
-            console.print(f"  → {path}")
+        print_outputs(result.output_paths)
 
 
 @app.command("upload")
@@ -114,10 +119,10 @@ def upload_cmd(
     try:
         dest = copy_upload(file, settings.project_root)
     except (FileNotFoundError, ValueError) as exc:
-        console.print(f"[red]Upload failed:[/red] {exc}")
+        print_error(str(exc))
         raise typer.Exit(code=1) from exc
-    console.print(f"[green]✓ Uploaded[/green] → {dest}")
-    console.print("[dim]Run: battery-allocation run[/dim]")
+    print_ok(f"uploaded {dest.name}")
+    print_note("run: battery-allocation run")
 
 
 @app.command("files")
@@ -141,13 +146,12 @@ def validate_cmd(
         vehicle_path = resolve_data_file(settings.project_root, "vehicle", vehicle, use_sample=sample)
         info = validate_data_files(battery_path, vehicle_path)
     except (DataLoadError, FileNotFoundError, ValueError) as exc:
-        console.print(f"[red]Validation failed:[/red] {exc}")
+        print_error(str(exc))
         raise typer.Exit(code=1) from exc
     console.print(
-        f"[green]✓ Valid[/green] — {info['battery_count']} batteries, "
-        f"{info['vehicle_count']} requests\n"
-        f"  Battery: {info['battery_file']}\n"
-        f"  Vehicle: {info['vehicle_file']}"
+        f"ok  {info['battery_count']} batteries, {info['vehicle_count']} requests\n"
+        f"  battery  {info['battery_file']}\n"
+        f"  vehicle  {info['vehicle_file']}"
     )
 
 
@@ -160,7 +164,7 @@ def serve_cmd(
     """Start the REST API server."""
     settings = get_settings()
     setup_logging(settings.log_level, "text")
-    console.print(f"[cyan]Starting API[/cyan] → http://{host or settings.api_host}:{port or settings.api_port}/docs")
+    console.print(f"listening on http://{host or settings.api_host}:{port or settings.api_port}/docs")
     uvicorn.run(
         "battery_allocation.api.app:create_app",
         factory=True,
@@ -173,7 +177,7 @@ def serve_cmd(
 @app.command("version")
 def version_cmd() -> None:
     """Show installed version."""
-    console.print(f"battery-allocation [cyan]v{__version__}[/cyan]")
+    console.print(f"battery-allocation {__version__}")
 
 
 def run_cli() -> None:

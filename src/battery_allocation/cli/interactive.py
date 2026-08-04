@@ -9,16 +9,16 @@ from rich.prompt import Confirm, Prompt
 from battery_allocation.cli.console import (
     console,
     print_banner,
-    print_divider,
     print_error,
     print_file_list,
     print_help,
-    print_info,
     print_menu,
     print_metrics_table,
+    print_note,
+    print_ok,
     print_outputs,
+    print_section,
     print_status_panel,
-    print_success,
     run_with_spinner,
 )
 from battery_allocation.config.settings import get_settings
@@ -37,38 +37,38 @@ from battery_allocation.utils.logging import setup_logging
 
 
 def _short_path(path: Path) -> str:
-    return path.name if len(str(path)) < 60 else f".../{path.name}"
+    return path.name if len(str(path)) < 64 else f".../{path.name}"
 
 
 def _pick_file(candidates: list[Path], label: str) -> Path | None:
     if not candidates:
         return None
     if len(candidates) == 1:
-        console.print(f"  [green]✓[/green] {label}: [cyan]{candidates[0].name}[/cyan]")
+        console.print(f"  {label}: {candidates[0].name}")
         return candidates[0]
 
     print_file_list(candidates, f"Select {label}")
     while True:
-        choice = Prompt.ask(f"  Pick {label}", default="1")
+        choice = Prompt.ask("  number", default="1")
         if choice.isdigit() and 1 <= int(choice) <= len(candidates):
             selected = candidates[int(choice) - 1]
-            console.print(f"  [green]✓[/green] Selected: [cyan]{selected.name}[/cyan]")
+            console.print(f"  {label}: {selected.name}")
             return selected
-        print_error("Invalid choice — enter a number from the list.")
+        print_error("invalid selection")
 
 
 def _prompt_path(label: str) -> Path:
     while True:
-        path_str = Prompt.ask(f"  {label} path", default="").strip().strip('"').strip("'")
+        path_str = Prompt.ask(f"  {label}", default="").strip().strip('"').strip("'")
         if not path_str:
-            print_error("Path cannot be empty.")
+            print_error("path required")
             continue
         path = Path(path_str).expanduser().resolve()
         if not path.exists():
-            print_error(f"File not found: {path}")
+            print_error(f"file not found: {path}")
             continue
         if path.suffix.lower() not in {".csv", ".xlsx", ".xls"}:
-            print_error("Unsupported format — use CSV or Excel (.xlsx, .xls).")
+            print_error("unsupported format (csv, xlsx, xls)")
             continue
         return path
 
@@ -81,21 +81,21 @@ def prompt_data_files(use_sample: bool = False) -> tuple[Path, Path]:
         battery_path = resolve_data_file(root, "battery", use_sample=True)
         vehicle_path = resolve_data_file(root, "vehicle", use_sample=True)
         console.print()
-        print_info(f"Battery: [cyan]{battery_path.name}[/cyan]")
-        print_info(f"Vehicle: [cyan]{vehicle_path.name}[/cyan]")
+        console.print(f"  battery   {battery_path.name}")
+        console.print(f"  vehicle   {vehicle_path.name}")
         return battery_path, vehicle_path
 
-    print_divider("Select data files")
+    print_section("Select data files")
     battery_candidates = guess_battery_files(root)
     vehicle_candidates = guess_vehicle_files(root)
 
-    selected_battery = _pick_file(battery_candidates, "battery fleet") if battery_candidates else None
-    selected_vehicle = _pick_file(vehicle_candidates, "vehicle demand") if vehicle_candidates else None
+    selected_battery = _pick_file(battery_candidates, "battery") if battery_candidates else None
+    selected_vehicle = _pick_file(vehicle_candidates, "vehicle") if vehicle_candidates else None
 
     if selected_battery is None:
-        selected_battery = _prompt_path("Battery fleet")
+        selected_battery = _prompt_path("battery file")
     if selected_vehicle is None:
-        selected_vehicle = _prompt_path("Vehicle demand")
+        selected_vehicle = _prompt_path("vehicle file")
 
     save_user_config(root, selected_battery, selected_vehicle)
     console.print()
@@ -108,10 +108,9 @@ def run_pipeline_interactive(use_sample: bool = False, skip_viz: bool = False) -
     settings = get_settings()
     output_dir = settings.resolved_output_dir()
 
-    console.print()
     try:
         result = run_with_spinner(
-            "Running classification, allocation & reporting...",
+            "running pipeline",
             lambda: run_pipeline(
                 battery_csv=battery,
                 vehicle_csv=vehicle,
@@ -124,56 +123,52 @@ def run_pipeline_interactive(use_sample: bool = False, skip_viz: bool = False) -
         return
 
     print_metrics_table(result.proposed_metrics, result.baseline_metrics)
-    print_success("Pipeline completed successfully")
+    print_ok("pipeline completed")
     print_outputs(result.output_paths)
 
-    if Confirm.ask("  Run pipeline again?", default=False):
+    if Confirm.ask("  run again?", default=False):
         run_pipeline_interactive(use_sample=use_sample, skip_viz=skip_viz)
 
 
 def upload_interactive() -> None:
     settings = get_settings()
-    print_divider("Upload data file")
-    path = _prompt_path("File to upload")
+    print_section("Upload")
+    path = _prompt_path("file")
     try:
         dest = copy_upload(path, settings.project_root)
     except (FileNotFoundError, ValueError) as exc:
         print_error(str(exc))
         return
-    print_success(f"Uploaded → [cyan]{dest.name}[/cyan]")
-    print_info("Use option [bold]1[/bold] (Run pipeline) to use this file.")
+    print_ok(f"uploaded {dest.name}")
+    print_note("use 'run' to process this file")
 
 
 def validate_interactive() -> None:
     setup_logging("WARNING", "text")
-    print_divider("Validate data")
+    print_section("Validate")
     battery, vehicle = prompt_data_files()
     try:
         info = run_with_spinner(
-            "Validating data files...",
+            "validating",
             lambda: validate_data_files(battery, vehicle),
         )
     except DataLoadError as exc:
         print_error(str(exc))
         return
 
-    table_msg = (
-        f"[bold]{info['battery_count']}[/bold] batteries  ·  "
-        f"[bold]{info['vehicle_count']}[/bold] vehicle requests"
-    )
-    print_success(f"Data is valid — {table_msg}")
-    print_info(f"Battery: [cyan]{_short_path(Path(str(info['battery_file'])))}[/cyan]")
-    print_info(f"Vehicle: [cyan]{_short_path(Path(str(info['vehicle_file'])))}[/cyan]")
+    print_ok(f"{info['battery_count']} batteries, {info['vehicle_count']} requests")
+    print_note(f"battery: {_short_path(Path(str(info['battery_file'])))}")
+    print_note(f"vehicle: {_short_path(Path(str(info['vehicle_file'])))}")
 
 
 def show_files() -> None:
     settings = get_settings()
     files = discover_files(settings.project_root)
     if not files:
-        print_error("No data files found.")
-        print_info("Upload with option [bold]3[/bold] or place files in [cyan]data/[/cyan]")
+        print_error("no data files found")
+        print_note("upload a file or place CSV/Excel in data/")
         return
-    print_file_list(files, "Available data files")
+    print_file_list(files, "Data files")
 
 
 def _show_active_config() -> None:
@@ -188,48 +183,33 @@ def _show_active_config() -> None:
         )
 
 
-def _pause() -> None:
-    console.print()
-    Prompt.ask("  [dim]Press Enter to continue[/dim]", default="")
-
-
 def interactive_menu() -> None:
     while True:
-        console.clear()
+        console.print()
         print_banner()
         _show_active_config()
         print_menu()
 
-        choice = Prompt.ask("  Choose", default="2").strip().lower()
+        choice = Prompt.ask(">", default="2").strip().lower()
 
-        if choice == "1":
+        if choice in {"1", "run"}:
             run_pipeline_interactive(use_sample=False)
-            _pause()
-        elif choice == "2":
+        elif choice in {"2", "demo"}:
             run_pipeline_interactive(use_sample=True)
-            _pause()
-        elif choice == "3":
+        elif choice in {"3", "upload"}:
             upload_interactive()
-            _pause()
-        elif choice == "4":
+        elif choice in {"4", "files"}:
             show_files()
-            _pause()
-        elif choice == "5":
+        elif choice in {"5", "validate"}:
             validate_interactive()
-            _pause()
-        elif choice == "6":
+        elif choice in {"6", "serve"}:
             from battery_allocation.cli.main import serve_cmd
 
-            print_divider("API Server")
             serve_cmd(host=None, port=None, reload=False)
             break
-        elif choice == "7":
+        elif choice in {"7", "help"}:
             print_help()
-            _pause()
         elif choice in {"q", "quit", "exit"}:
-            if Confirm.ask("  Quit battery-allocation?", default=True):
-                console.print("\n  [dim]Goodbye! 👋[/dim]\n")
-                break
+            break
         else:
-            print_error(f"Unknown option: [bold]{choice}[/bold]")
-            _pause()
+            print_error(f"unknown command: {choice}")
