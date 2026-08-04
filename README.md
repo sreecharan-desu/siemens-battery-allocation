@@ -145,7 +145,8 @@ siemens-battery-allocation/
 │   ├── ARCHITECTURE.md
 │   ├── METHOD.md
 │   ├── API.md
-│   ├── generate_presentation.py  # Regenerate Word presentation
+│   ├── generate_presentation.py  # Regenerate Word + PDF presentation
+│   ├── Siemens_Battery_Allocation_Presentation.pdf
 │   └── Siemens_Battery_Allocation_Presentation.docx
 ├── outputs/                      # Pipeline results (CSV, JSON, charts)
 ├── scripts/                      # Cross-platform install scripts
@@ -159,7 +160,8 @@ siemens-battery-allocation/
 
 | Document | Description |
 |----------|-------------|
-| **[Presentation (Word)](docs/Siemens_Battery_Allocation_Presentation.docx)** | Competition submission deck — results, charts, capability matrix |
+| **[Presentation (PDF)](docs/Siemens_Battery_Allocation_Presentation.pdf)** | Competition submission deck — recommended for presenting |
+| **[Presentation (Word)](docs/Siemens_Battery_Allocation_Presentation.docx)** | Editable source document |
 | [Architecture](docs/ARCHITECTURE.md) | System layers, modules, deployment modes |
 | [Method](docs/METHOD.md) | Classification, scoring, allocation algorithms |
 | [API](docs/API.md) | REST endpoints reference |
@@ -170,11 +172,14 @@ siemens-battery-allocation/
 After running the pipeline (`battery-allocation run --sample`), rebuild the Word document:
 
 ```bash
-pip install python-docx pillow
-python docs/generate_presentation.py
+pip install python-docx pillow reportlab
+python docs/generate_presentation.py        # Word + PDF
+python docs/generate_presentation.py --pdf-only
 ```
 
-Output: `docs/Siemens_Battery_Allocation_Presentation.docx`
+Output:
+- `docs/Siemens_Battery_Allocation_Presentation.pdf`
+- `docs/Siemens_Battery_Allocation_Presentation.docx`
 
 ## Quality gates
 
