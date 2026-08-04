@@ -1,0 +1,11 @@
+pipeline:
+  generate_visualizations: true
+  run_baseline_comparison: true
+  verify_constraints: true
+
+allocation:
+  default_method: priority_suitability
+  baseline_method: highest_soc_first
+
+reporting:
+  export_quarantine_report: true

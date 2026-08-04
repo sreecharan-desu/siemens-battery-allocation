@@ -1,0 +1,22 @@
+unsafe:
+  soh_percent: 60.0
+  temperature_c: 45.0
+  internal_resistance_mohm: 85.0
+  cell_voltage_imbalance_mv: 90.0
+  max_temperature_last_24h_c: 50.0
+
+degraded:
+  soh_percent: 70.0
+  internal_resistance_mohm: 70.0
+  cell_voltage_imbalance_mv: 60.0
+  cycle_count: 1400
+
+vehicle_energy_kwh_per_km:
+  Personal Commuter: 0.020
+  Delivery Two-Wheeler: 0.025
+  Campus Utility EV: 0.022
+
+load_multipliers:
+  Light: 1.0
+  Medium: 1.1
+  Heavy: 1.2
