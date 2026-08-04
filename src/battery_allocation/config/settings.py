@@ -12,6 +12,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 def _project_root() -> Path:
+    """Resolve repo root from cwd or package location (works in editable and CI installs)."""
+    for start in (Path.cwd(), Path(__file__).resolve()):
+        for path in (start, *start.parents):
+            if (path / "pyproject.toml").is_file() and (path / "data").is_dir():
+                return path
     return Path(__file__).resolve().parents[3]
 
 
