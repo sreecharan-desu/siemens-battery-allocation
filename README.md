@@ -1,195 +1,90 @@
 # Battery Health Assessment and Dynamic Allocation
 
-[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
-[![Version](https://img.shields.io/badge/version-1.2.1-green.svg)](https://github.com/sreecharan-desu/siemens-battery-allocation/releases)
 [![CI](https://github.com/sreecharan-desu/siemens-battery-allocation/actions/workflows/ci.yml/badge.svg)](https://github.com/sreecharan-desu/siemens-battery-allocation/actions/workflows/ci.yml)
 
-**Production-grade battery allocation for light EV battery-swapping stations.**
+Classifies light-EV battery packs (Safe / Degraded / Unsafe), gives each a 0–100 suitability score, and assigns packs to incoming vehicle requests under safety and priority constraints. Built for the Siemens Energy / IMECE India 2026 Brain Bolt Engineers Sprint. Interfaces: CLI, REST API (FastAPI) and Docker.
 
-Classifies battery health, scores suitability, and assigns packs to vehicle requests under safety and priority constraints. Built for the Siemens Energy / IMECE India 2026 Brain Bolt Engineers Sprint.
+## Results on the official dataset (200 packs, 50 requests)
 
-**Repository:** [github.com/sreecharan-desu/siemens-battery-allocation](https://github.com/sreecharan-desu/siemens-battery-allocation)
+From `battery-allocation run --sample --skip-viz` ([raw output](benchmarks/results-2026-10-19/pipeline-run.txt)):
 
-## One-line setup
+| Metric | Proposed (priority + suitability) | Baseline (highest SoC first) |
+|---|---|---|
+| Vehicles served | 36 / 50 | 36 / 50 |
+| High/critical-priority served | **73.1%** | 69.2% |
+| Unsafe packs allocated | 0 | 0 |
+| Avg state of health of allocated packs | **90.4%** | 80.5% |
+| Avg suitability score | **84.5** | 76.8 |
 
-**Prerequisite:** [Python 3.11+](https://www.python.org/downloads/) installed on your machine.
+## How it works
 
-### All platforms (recommended)
+```
+data/loader      CSV/Excel -> typed models (auto-discovers files)
+core/            classification -> scoring -> allocation (+ baseline), on-site "twist" constraints
+pipeline/        run, verify constraints, export CSV/JSON/PNG to outputs/
+cli/ , api/      Typer CLI and FastAPI (/health, /pipeline/run, /classifications/summary, /requests/summary)
+config/          thresholds.yaml, default.yaml (overridable by env vars)
+```
 
-Uses the cross-platform installer — same command everywhere:
+Method details: [docs/METHOD.md](docs/METHOD.md) · Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · API: [docs/API.md](docs/API.md) · Deck: [PDF](docs/Siemens_Battery_Allocation_Presentation.pdf)
+
+## Setup
+
+Python 3.11+.
 
 ```bash
-git clone https://github.com/sreecharan-desu/siemens-battery-allocation.git && cd siemens-battery-allocation && python scripts/install.py
+git clone https://github.com/sreecharan-desu/siemens-battery-allocation.git && cd siemens-battery-allocation
+python scripts/install.py            # creates .venv and installs (install.sh / install.ps1 / install.bat also work)
+.venv/bin/battery-allocation          # interactive menu
+.venv/bin/battery-allocation run --sample
+.venv/bin/battery-allocation serve    # REST API on :8000
 ```
 
-Add `--run` to install and launch the interactive CLI immediately:
+Docker: `docker build -t battery-allocation . && docker run -p 8000:8000 battery-allocation`
+
+| Command | Purpose |
+|---|---|
+| `run [-b fleet.xlsx -v demand.csv] [--sample] [--skip-viz]` | Run the pipeline |
+| `upload <file>`, `files`, `validate` | Manage and check input files |
+| `serve`, `version` | Start the API, print the version |
+
+Outputs go to `outputs/`: classifications, quarantine report, proposed and baseline allocations, `metrics_report.json`, and charts.
+
+## Tests
 
 ```bash
-git clone https://github.com/sreecharan-desu/siemens-battery-allocation.git && cd siemens-battery-allocation && python scripts/install.py --run
+pytest --cov=battery_allocation      # CI also runs ruff, mypy --strict and a pipeline smoke test on 3.11 and 3.12
 ```
 
-### Platform shortcuts
+Measured 19 Oct 2026: **58 passed in 7.7 s, 81.5% coverage** (CI gate is 80%). [Raw output](benchmarks/results-2026-10-19/pytest-coverage.txt).
 
-| OS | Setup command | Activate & run |
-|----|---------------|----------------|
-| **macOS / Linux** | `./scripts/install.sh` | `source .venv/bin/activate` then `battery-allocation` |
-| **Windows (PowerShell)** | `.\scripts\install.ps1` | `.\.venv\Scripts\Activate.ps1` then `battery-allocation` |
-| **Windows (CMD)** | `scripts\install.bat` | `.venv\Scripts\activate.bat` then `battery-allocation` |
+## Performance (measured)
 
-**No activate needed** — run the CLI directly after setup:
+One 8 vCPU / 15 GiB VM (Intel Xeon), Python 3.12, single run. The load generator ran on the same machine. Method and environment: [benchmarks/README.md](benchmarks/README.md).
 
-```bash
-# macOS / Linux
-.venv/bin/battery-allocation
+**Algorithm** (`benchmarks/bench_core.py`, [raw](benchmarks/results-2026-10-19/core.txt)). The larger fleets are the official rows cloned 10x and 50x:
 
-# Windows
-.venv\Scripts\battery-allocation.exe
-```
+| Fleet / requests | classify p50 | allocate (proposed) p50 / p95 | allocate (baseline) p50 |
+|---|---|---|---|
+| 200 / 50 (official) | 0.39 ms | **4.3 ms / 5.0 ms** | 2.7 ms |
+| 2,000 / 500 | 3.7 ms | 439 ms / 468 ms | 281 ms |
+| 10,000 / 2,500 | 19.7 ms | 11.6 s / 11.7 s | 7.7 s |
 
-## Interactive CLI
+Peak Python heap for the 10,000-pack run: 7.1 MB.
 
-Run `battery-allocation` with no arguments:
+**HTTP API** (`uvicorn --workers 4`, k6 closed-loop VUs, [k6 output](benchmarks/results-2026-10-19/k6-output.txt), [summary JSON](benchmarks/results-2026-10-19/k6-summary.json)):
 
-```
-battery-allocation 1.2.1
-Battery health assessment and dynamic allocation
+| Endpoint | Concurrency (VUs) | Requests | Throughput (req/s) | p50 (ms) | p95 (ms) | p99 (ms) | Max (ms) | Error rate |
+|---|---|---|---|---|---|---|---|---|
+| `GET /health` | 50 | 308,771 | 15,439 | 3.0 | 5.3 | 7.3 | 75.3 | 0.00% |
+| `GET /classifications/summary` | 50 | 8,671 | 434 | 110.7 | 184.7 | 216.8 | 396.8 | 0.00% |
+| `POST /pipeline/run` | 8 | 3,393 | 170 | 45.9 | 82.1 | 96.0 | 141.2 | 0.00% |
 
-Context
-  battery   Problem_1_Battery_Fleet_200_Packs.csv
-  vehicle   Problem_1_Vehicle_Demand_50_Requests.csv
+On that hardware, the API sustained **170 full pipeline runs/s at p95 82 ms** on the official dataset (8 VUs, no charts). Cold start (process launch to first healthy response): 1.1 s. RSS for master + 4 workers: 537 MB idle, 617 MB under load.
 
-Commands
-  1   run        Run pipeline with your data files
-  2   demo       Run with bundled sample data
-  3   upload     Upload a CSV or Excel file
-  ...
+## Known issues
 
->
-```
-
-Plain, tool-style output — no decorative panels or color noise. Commands accept numbers or names (`run`, `demo`, `quit`).
-
-## Quick commands
-
-| Command | Description |
-|---------|-------------|
-| `battery-allocation` | Interactive menu (default) |
-| `battery-allocation run` | Run pipeline (auto-discovers data files) |
-| `battery-allocation run --sample` | Use bundled competition datasets |
-| `battery-allocation run -b fleet.xlsx -v demand.csv` | Explicit file paths |
-| `battery-allocation upload ./mydata.xlsx` | Upload CSV/Excel to `data/uploads/` |
-| `battery-allocation files` | List discoverable data files |
-| `battery-allocation validate --sample` | Validate files without running pipeline |
-| `battery-allocation serve` | Start REST API |
-| `battery-allocation version` | Show version |
-
-## Data files
-
-No hardcoded paths. The CLI discovers files automatically from:
-
-1. Explicit `-b` / `-v` flags
-2. Saved config (`.battery-allocation.json`)
-3. `data/uploads/` then `data/` (filename hints: *battery*, *fleet*, *vehicle*, *demand*)
-4. Bundled sample datasets (`--sample` or menu option 2)
-
-Supported formats: **CSV**, **Excel** (`.xlsx`, `.xls`)
-
-## Outputs
-
-Generated by `battery-allocation run` into `outputs/`:
-
-| File | Description |
-|------|-------------|
-| `battery_classifications.csv` | Per-battery category and score |
-| `quarantine_report.csv` | Unsafe batteries only |
-| `allocations_proposed.csv` | Proposed method assignments |
-| `allocations_baseline_highest_soc.csv` | Baseline assignments |
-| `metrics_report.json` | Quantitative comparison |
-| `01–05_*.png` | Visualizations (embedded in presentation doc) |
-
-## Features
-
-- Battery classification (Safe / Degraded / Unsafe)
-- Suitability scoring (0–100)
-- Priority-aware allocation + Highest-SoC-First baseline
-- Constraint verification and quantitative metrics
-- Interactive CLI, REST API, Docker, CI pipeline
-- Config-driven thresholds (YAML + environment variables)
-- Onsite twist handler for event-day constraints
-
-## Docker
-
-```bash
-docker build -t battery-allocation .
-docker run -p 8000:8000 battery-allocation
-```
-
-## Configuration
-
-Copy `.env.example` to `.env` and set optional overrides:
-
-```env
-BATTERY_ALLOCATION_LOG_LEVEL=INFO
-BATTERY_ALLOCATION_OUTPUT_DIR=outputs
-```
-
-Tune classification thresholds in `config/thresholds.yaml` without code changes.
-
-## Project structure
-
-```
-siemens-battery-allocation/
-├── config/                       # YAML thresholds and pipeline toggles
-├── data/                         # Sample datasets + uploads/
-├── docs/                         # Technical docs and presentation
-│   ├── ARCHITECTURE.md
-│   ├── METHOD.md
-│   ├── API.md
-│   ├── generate_presentation.py  # Regenerate Word + PDF presentation
-│   ├── Siemens_Battery_Allocation_Presentation.pdf
-│   └── Siemens_Battery_Allocation_Presentation.docx
-├── outputs/                      # Pipeline results (CSV, JSON, charts)
-├── scripts/                      # Cross-platform install scripts
-├── src/battery_allocation/       # Main package
-├── tests/
-├── Dockerfile
-└── pyproject.toml
-```
-
-## Documentation
-
-| Document | Description |
-|----------|-------------|
-| **[Presentation (PDF)](docs/Siemens_Battery_Allocation_Presentation.pdf)** | Competition submission deck — recommended for presenting |
-| **[Presentation (Word)](docs/Siemens_Battery_Allocation_Presentation.docx)** | Editable source document |
-| [Architecture](docs/ARCHITECTURE.md) | System layers, modules, deployment modes |
-| [Method](docs/METHOD.md) | Classification, scoring, allocation algorithms |
-| [API](docs/API.md) | REST endpoints reference |
-| [Run report](outputs/RUN_REPORT.md) | Latest pipeline metrics summary |
-
-### Regenerate presentation
-
-After running the pipeline (`battery-allocation run --sample`), rebuild the Word document:
-
-```bash
-pip install python-docx pillow reportlab
-python docs/generate_presentation.py        # Word + PDF
-python docs/generate_presentation.py --pdf-only
-```
-
-Output:
-- `docs/Siemens_Battery_Allocation_Presentation.pdf`
-- `docs/Siemens_Battery_Allocation_Presentation.docx`
-
-## Quality gates
-
-CI runs on Python 3.11 and 3.12:
-
-- Ruff lint
-- Mypy strict mode
-- Pytest with ≥80% coverage
-- Pipeline smoke test
-
-## License
-
-Proprietary — Siemens Energy / IMECE India 2026 competition submission. All rights reserved.
+- **Allocation is O(requests x packs).** Each request rescans every pack, so the runtime grows about 100x when the input grows 10x (measured above). That's fine for one station (200 packs). A per-request candidate index or a heap would be needed for fleet-scale inputs.
+- `GET /classifications/summary` re-reads and re-classifies the CSV on every call (434 req/s, p95 185 ms), which makes it slower than `/pipeline/run`. It should be cached.
+- `POST /pipeline/run` accepts arbitrary `battery_csv` / `output_dir` paths from the request body. Don't expose the API publicly without restricting those paths.
+- License: proprietary competition submission (see `pyproject.toml`). All rights reserved.

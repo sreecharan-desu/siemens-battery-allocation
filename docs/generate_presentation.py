@@ -124,7 +124,7 @@ def add_executive_summary(doc: Document, metrics: dict) -> None:
 
     doc.add_heading("Executive Summary", level=1)
     doc.add_paragraph(
-        "This document presents a production-grade system for classifying battery health, "
+        "This document presents a system for classifying battery health, "
         "scoring pack suitability, and allocating batteries to light EV swap requests at a "
         "station with 200 packs and 50 concurrent vehicle demands. The proposed "
         "Priority-Suitability allocator matches the Highest-SoC-First baseline on vehicles "
@@ -599,7 +599,7 @@ def generate_pdf(metrics: dict) -> None:
 
     story.append(Paragraph("Executive Summary", styles["h1"]))
     story.append(Paragraph(
-        "This document presents a production-grade system for classifying battery health, "
+        "This document presents a system for classifying battery health, "
         "scoring pack suitability, and allocating batteries to light EV swap requests at a "
         "station with 200 packs and 50 concurrent vehicle demands. The proposed "
         "Priority-Suitability allocator matches the Highest-SoC-First baseline on vehicles "

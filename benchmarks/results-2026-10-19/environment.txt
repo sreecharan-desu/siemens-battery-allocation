@@ -1,0 +1,11 @@
+date_ist: 2026-10-19 08:37 UTC
+host: single shared VM (load generator and server on the SAME box)
+cpu: Intel(R) Xeon(R) Processor x 8 vCPU
+ram: 15 GiB
+os: Debian GNU/Linux 13 (trixie), kernel 6.12.94+
+k6: k6 v0.54.0 (commit/baba871c8a, go1.23.1, linux/amd64)
+server: uvicorn battery_allocation.api.app:create_app --factory --workers 4, Python 3.12.15
+data: official CSVs (200 packs, 50 requests); no database
+cold_start_ms: 1117
+idle_rss_total_mb: 536.7 (processes: 6)
+under_load_pipeline_rss_total_mb: 617.0 (processes: 6)
