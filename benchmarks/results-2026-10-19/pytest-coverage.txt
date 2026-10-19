@@ -1,0 +1,40 @@
+..........................................................               [100%]
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.12.15-final-0 _______________
+
+Name                                                Stmts   Miss Branch BrPart  Cover   Missing
+-----------------------------------------------------------------------------------------------
+src/battery_allocation/__init__.py                      1      0      0      0   100%
+src/battery_allocation/__main__.py                      3      3      2      0     0%   3-6
+src/battery_allocation/api/__init__.py                  0      0      0      0   100%
+src/battery_allocation/api/app.py                       7      0      0      0   100%
+src/battery_allocation/api/routes.py                   65     12      4      0    80%   66-67, 82-83, 98-107
+src/battery_allocation/cli/__init__.py                  0      0      0      0   100%
+src/battery_allocation/cli/console.py                  91      0     10      0   100%
+src/battery_allocation/cli/interactive.py             140    108     40      2    19%   40, 44-57, 61-73, 88-102, 106-130, 134-143, 147-161, 168-170, 175-180, 187-215
+src/battery_allocation/cli/main.py                     81     19      6      2    76%   45, 80-82, 93-95, 121-123, 148-150, 165-168, 184, 188
+src/battery_allocation/config/__init__.py               0      0      0      0   100%
+src/battery_allocation/config/settings.py              83      5     16      7    88%   17->16, 18->17, 20, 94, 101, 127, 136
+src/battery_allocation/core/__init__.py                 0      0      0      0   100%
+src/battery_allocation/core/allocation.py              56      2     24      2    95%   48, 88
+src/battery_allocation/core/classification.py          39      0     24      0   100%
+src/battery_allocation/core/models.py                  73      1      0      0    99%   49
+src/battery_allocation/core/scoring.py                 17      0      4      0   100%
+src/battery_allocation/core/twist.py                   25      1      4      2    90%   33->37, 38
+src/battery_allocation/data/__init__.py                 0      0      0      0   100%
+src/battery_allocation/data/discovery.py              106      7     46     10    89%   43-44, 49->51, 51->53, 62->64, 76->73, 114, 121, 127->130, 132, 138, 149
+src/battery_allocation/data/loader.py                  53      5      6      1    90%   41, 60-61, 103-104
+src/battery_allocation/data/schemas.py                 37      0      0      0   100%
+src/battery_allocation/data/spreadsheet.py             13      0      4      0   100%
+src/battery_allocation/pipeline/__init__.py             0      0      0      0   100%
+src/battery_allocation/pipeline/exporters.py           28      0      0      0   100%
+src/battery_allocation/pipeline/runner.py              64      6     12      4    84%   56-57, 66->70, 79->88, 83-86
+src/battery_allocation/reporting/__init__.py            0      0      0      0   100%
+src/battery_allocation/reporting/metrics.py            58      7     20      7    82%   73, 77, 101, 111, 119, 126, 131
+src/battery_allocation/reporting/visualization.py     103      0      6      2    98%   66->64, 191->193
+src/battery_allocation/utils/__init__.py                0      0      0      0   100%
+src/battery_allocation/utils/logging.py                15      0      2      0   100%
+-----------------------------------------------------------------------------------------------
+TOTAL                                                1158    176    230     39    81%
+Required test coverage of 80.0% reached. Total coverage: 81.48%
+58 passed in 7.68s

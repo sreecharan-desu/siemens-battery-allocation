@@ -1,0 +1,22 @@
+2026-10-19 08:39:09,481 | INFO     | battery_allocation.data.loader | Loaded 200 batteries from /workspace/show/siemens-battery-allocation/data/Problem_1_Battery_Fleet_200_Packs.csv
+2026-10-19 08:39:09,484 | INFO     | battery_allocation.data.loader | Loaded 50 vehicle requests from /workspace/show/siemens-battery-allocation/data/Problem_1_Vehicle_Demand_50_Requests.csv
+2026-10-19 08:39:09,488 | INFO     | battery_allocation.pipeline.runner | Exported classifications to /tmp/bsa-out/battery_classifications.csv
+2026-10-19 08:39:09,496 | INFO     | battery_allocation.pipeline.runner | Pipeline complete: served=36 (proposed), served=36 (baseline)
+ok  pipeline completed
+
+Results
+  metric                      proposed    baseline  
+  vehicles served                   36          36  
+  vehicles unserved                 14          14  
+  high/critical served %         73.08       69.23  
+  unsafe allocations                 0           0  
+  avg SoH allocated              90.37       80.49  
+  avg suitability score          84.54        76.8  
+
+Outputs
+  /tmp/bsa-out/battery_classifications.csv
+  /tmp/bsa-out/quarantine_report.csv
+  /tmp/bsa-out/allocations_proposed.csv
+  /tmp/bsa-out/allocations_baseline_highest_soc.csv
+  /tmp/bsa-out/metrics_report.json
+
