@@ -1,10 +1,10 @@
-# Battery Health Assessment and Dynamic Allocation
+# siemens-battery-allocation
 
-[![CI](https://github.com/sreecharan-desu/siemens-battery-allocation/actions/workflows/ci.yml/badge.svg)](https://github.com/sreecharan-desu/siemens-battery-allocation/actions/workflows/ci.yml)
+[![ci](https://github.com/sreecharan-desu/siemens-battery-allocation/actions/workflows/ci.yml/badge.svg)](https://github.com/sreecharan-desu/siemens-battery-allocation/actions/workflows/ci.yml)
 
-Classifies light-EV battery packs (Safe / Degraded / Unsafe), gives each a 0–100 suitability score, and assigns packs to incoming vehicle requests under safety and priority constraints. Built for the Siemens Energy / IMECE India 2026 Brain Bolt Engineers Sprint. Interfaces: CLI, REST API (FastAPI) and Docker.
+classifies light-ev battery packs (safe / degraded / unsafe), scores each 0-100 for suitability, and assigns packs to vehicle requests under safety and priority constraints. built for the siemens energy / imece india 2026 challenge.
 
-## Results on the official dataset (200 packs, 50 requests)
+## results on the official dataset (200 packs, 50 requests)
 
 From `battery-allocation run --sample --skip-viz` ([raw output](benchmarks/results-2026-10-19/pipeline-run.txt)):
 
@@ -16,49 +16,44 @@ From `battery-allocation run --sample --skip-viz` ([raw output](benchmarks/resul
 | Avg state of health of allocated packs | **90.4%** | 80.5% |
 | Avg suitability score | **84.5** | 76.8 |
 
-## How it works
+## features
 
-```
-data/loader      CSV/Excel -> typed models (auto-discovers files)
-core/            classification -> scoring -> allocation (+ baseline), on-site "twist" constraints
-pipeline/        run, verify constraints, export CSV/JSON/PNG to outputs/
-cli/ , api/      Typer CLI and FastAPI (/health, /pipeline/run, /classifications/summary, /requests/summary)
-config/          thresholds.yaml, default.yaml (overridable by env vars)
-```
+- data loader: csv/excel to typed models, auto-discovers input files
+- core: classification, scoring, allocation, plus a highest-soc-first baseline for comparison
+- pipeline: run, verify constraints, export csv/json/png to `outputs/`
+- typer cli and fastapi (`/health`, `/pipeline/run`, `/classifications/summary`, `/requests/summary`)
+- thresholds in `config/thresholds.yaml`, overridable by env vars
 
-Method details: [docs/METHOD.md](docs/METHOD.md) · Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · API: [docs/API.md](docs/API.md) · Deck: [PDF](docs/Siemens_Battery_Allocation_Presentation.pdf)
+method: [docs/METHOD.md](docs/METHOD.md) · architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · api: [docs/API.md](docs/API.md)
 
-## Setup
+## stack
 
-Python 3.11+.
+python 3.11+ · fastapi · typer · pandas · pytest · docker
+
+## run locally
 
 ```bash
-git clone https://github.com/sreecharan-desu/siemens-battery-allocation.git && cd siemens-battery-allocation
-python scripts/install.py            # creates .venv and installs (install.sh / install.ps1 / install.bat also work)
-.venv/bin/battery-allocation          # interactive menu
+python scripts/install.py                  # creates .venv and installs
+.venv/bin/battery-allocation               # interactive menu
 .venv/bin/battery-allocation run --sample
-.venv/bin/battery-allocation serve    # REST API on :8000
+.venv/bin/battery-allocation serve         # rest api on :8000
 ```
 
-Docker: `docker build -t battery-allocation . && docker run -p 8000:8000 battery-allocation`
+docker: `docker build -t battery-allocation . && docker run -p 8000:8000 battery-allocation`
 
-| Command | Purpose |
-|---|---|
-| `run [-b fleet.xlsx -v demand.csv] [--sample] [--skip-viz]` | Run the pipeline |
-| `upload <file>`, `files`, `validate` | Manage and check input files |
-| `serve`, `version` | Start the API, print the version |
-
-Outputs go to `outputs/`: classifications, quarantine report, proposed and baseline allocations, `metrics_report.json`, and charts.
-
-## Tests
+tests:
 
 ```bash
-pytest --cov=battery_allocation      # CI also runs ruff, mypy --strict and a pipeline smoke test on 3.11 and 3.12
+pytest --cov=battery_allocation    # ci also runs ruff, mypy --strict and a pipeline smoke test on 3.11 and 3.12
 ```
 
-Measured 19 Oct 2026: **58 passed in 7.7 s, 81.5% coverage** (CI gate is 80%). [Raw output](benchmarks/results-2026-10-19/pytest-coverage.txt).
+measured 19 oct 2026: 58 passed in 7.7 s, 81.5% coverage ([raw output](benchmarks/results-2026-10-19/pytest-coverage.txt)).
 
-## Performance (measured)
+## env
+
+optional. copy `.env.example` to `.env` to override config values.
+
+## performance (measured)
 
 One 8 vCPU / 15 GiB VM (Intel Xeon), Python 3.12, single run. The load generator ran on the same machine. Method and environment: [benchmarks/README.md](benchmarks/README.md).
 
@@ -82,9 +77,9 @@ Peak Python heap for the 10,000-pack run: 7.1 MB.
 
 On that hardware, the API sustained **170 full pipeline runs/s at p95 82 ms** on the official dataset (8 VUs, no charts). Cold start (process launch to first healthy response): 1.1 s. RSS for master + 4 workers: 537 MB idle, 617 MB under load.
 
-## Known issues
+## known issues
 
-- **Allocation is O(requests x packs).** Each request rescans every pack, so the runtime grows about 100x when the input grows 10x (measured above). That's fine for one station (200 packs). A per-request candidate index or a heap would be needed for fleet-scale inputs.
-- `GET /classifications/summary` re-reads and re-classifies the CSV on every call (434 req/s, p95 185 ms), which makes it slower than `/pipeline/run`. It should be cached.
-- `POST /pipeline/run` accepts arbitrary `battery_csv` / `output_dir` paths from the request body. Don't expose the API publicly without restricting those paths.
-- License: proprietary competition submission (see `pyproject.toml`). All rights reserved.
+- allocation is o(requests x packs), so runtime grows about 100x when the input grows 10x. fine for one station (200 packs); fleet scale needs a candidate index or a heap.
+- `GET /classifications/summary` re-reads and re-classifies the csv on every call. it should be cached.
+- `POST /pipeline/run` accepts arbitrary `battery_csv` / `output_dir` paths. don't expose the api publicly without restricting them.
+- license: proprietary competition submission (see `pyproject.toml`).
