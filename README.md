@@ -47,7 +47,7 @@ tests:
 pytest --cov=battery_allocation    # ci also runs ruff, mypy --strict and a pipeline smoke test on 3.11 and 3.12
 ```
 
-measured 19 oct 2026: 58 passed in 7.7 s, 81.5% coverage ([raw output](benchmarks/results-2026-10-19/pytest-coverage.txt)).
+measured 19 oct 2026: 58 passed in 7.7 s, 81% coverage ([raw output](benchmarks/results-2026-10-19/pytest-coverage.txt)).
 
 ## env
 
