@@ -6,7 +6,7 @@ classifies light-ev battery packs (safe / degraded / unsafe), scores each 0-100 
 
 ## results on the official dataset (200 packs, 50 requests)
 
-From `battery-allocation run --sample --skip-viz` ([raw output](benchmarks/results-2026-10-19/pipeline-run.txt)):
+from `battery-allocation run --sample --skip-viz` ([raw output](benchmarks/results-2026-10-19/pipeline-run.txt)):
 
 | Metric | Proposed (priority + suitability) | Baseline (highest SoC first) |
 |---|---|---|
@@ -55,9 +55,9 @@ optional. copy `.env.example` to `.env` to override config values.
 
 ## performance (measured)
 
-One 8 vCPU / 15 GiB VM (Intel Xeon), Python 3.12, single run. The load generator ran on the same machine. Method and environment: [benchmarks/README.md](benchmarks/README.md).
+one 8 vCPU / 15 GiB VM (Intel Xeon), Python 3.12, single run. the load generator ran on the same machine. method and environment: [benchmarks/README.md](benchmarks/README.md).
 
-**Algorithm** (`benchmarks/bench_core.py`, [raw](benchmarks/results-2026-10-19/core.txt)). The larger fleets are the official rows cloned 10x and 50x:
+**algorithm** (`benchmarks/bench_core.py`, [raw](benchmarks/results-2026-10-19/core.txt)). the larger fleets are the official rows cloned 10x and 50x:
 
 | Fleet / requests | classify p50 | allocate (proposed) p50 / p95 | allocate (baseline) p50 |
 |---|---|---|---|
@@ -65,7 +65,7 @@ One 8 vCPU / 15 GiB VM (Intel Xeon), Python 3.12, single run. The load generator
 | 2,000 / 500 | 3.7 ms | 439 ms / 468 ms | 281 ms |
 | 10,000 / 2,500 | 19.7 ms | 11.6 s / 11.7 s | 7.7 s |
 
-Peak Python heap for the 10,000-pack run: 7.1 MB.
+peak Python heap for the 10,000-pack run: 7.1 MB.
 
 **HTTP API** (`uvicorn --workers 4`, k6 closed-loop VUs, [k6 output](benchmarks/results-2026-10-19/k6-output.txt), [summary JSON](benchmarks/results-2026-10-19/k6-summary.json)):
 
@@ -75,7 +75,7 @@ Peak Python heap for the 10,000-pack run: 7.1 MB.
 | `GET /classifications/summary` | 50 | 8,671 | 434 | 110.7 | 184.7 | 216.8 | 396.8 | 0.00% |
 | `POST /pipeline/run` | 8 | 3,393 | 170 | 45.9 | 82.1 | 96.0 | 141.2 | 0.00% |
 
-On that hardware, the API sustained **170 full pipeline runs/s at p95 82 ms** on the official dataset (8 VUs, no charts). Cold start (process launch to first healthy response): 1.1 s. RSS for master + 4 workers: 537 MB idle, 617 MB under load.
+on that hardware, the API sustained **170 full pipeline runs/s at p95 82 ms** on the official dataset (8 VUs, no charts). cold start (process launch to first healthy response): 1.1 s. RSS for master + 4 workers: 537 MB idle, 617 MB under load.
 
 ## known issues
 
