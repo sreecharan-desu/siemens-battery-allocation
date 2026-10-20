@@ -53,9 +53,9 @@ measured 19 oct 2026: 58 passed in 7.7 s, 81% coverage ([raw output](benchmarks/
 
 optional. copy `.env.example` to `.env` to override config values.
 
-## performance (measured)
+## local benchmark
 
-one 8 vCPU / 15 GiB VM (Intel Xeon), Python 3.12, single run. the load generator ran on the same machine. method and environment: [benchmarks/README.md](benchmarks/README.md).
+local benchmark, single run on one 8 vCPU / 15 GiB VM (Intel Xeon, Debian 13, kernel 6.12, Python 3.12.15, k6 v0.54.0). not a production deployment. the load generator ran on the same machine. method and environment: [benchmarks/README.md](benchmarks/README.md).
 
 **algorithm** (`benchmarks/bench_core.py`, [raw](benchmarks/results-2026-10-19/core.txt)). the larger fleets are the official rows cloned 10x and 50x:
 
@@ -75,11 +75,11 @@ peak Python heap for the 10,000-pack run: 7.1 MB.
 | `GET /classifications/summary` | 50 | 8,671 | 434 | 110.7 | 184.7 | 216.8 | 396.8 | 0.00% |
 | `POST /pipeline/run` | 8 | 3,393 | 170 | 45.9 | 82.1 | 96.0 | 141.2 | 0.00% |
 
-on that hardware, the API sustained **170 full pipeline runs/s at p95 82 ms** on the official dataset (8 VUs, no charts). cold start (process launch to first healthy response): 1.1 s. RSS for master + 4 workers: 537 MB idle, 617 MB under load.
+in this local run the API handled 170 full pipeline runs/s at p95 82 ms on the official dataset (8 VUs, no charts). cold start (process launch to first healthy response): 1.1 s. RSS for master + 4 workers: 537 MB idle, 617 MB under load.
 
 ## known issues
 
-- allocation is o(requests x packs), so runtime grows about 100x when the input grows 10x. fine for one station (200 packs); fleet scale needs a candidate index or a heap.
+- allocation is o(requests x packs), so runtime grows about 100x when the input grows 10x. fine for one station (200 packs); larger fleets would need a candidate index or a heap.
 - `GET /classifications/summary` re-reads and re-classifies the csv on every call. it should be cached.
 - `POST /pipeline/run` accepts arbitrary `battery_csv` / `output_dir` paths. don't expose the api publicly without restricting them.
 - license: proprietary competition submission (see `pyproject.toml`).
