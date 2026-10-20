@@ -8,13 +8,13 @@ classifies light-ev battery packs (safe / degraded / unsafe), scores each 0-100 
 
 from `battery-allocation run --sample --skip-viz` ([raw output](benchmarks/results-2026-10-19/pipeline-run.txt)):
 
-| Metric | Proposed (priority + suitability) | Baseline (highest SoC first) |
+| metric | proposed (priority + suitability) | baseline (highest SoC first) |
 |---|---|---|
-| Vehicles served | 36 / 50 | 36 / 50 |
-| High/critical-priority served | **73.1%** | 69.2% |
-| Unsafe packs allocated | 0 | 0 |
-| Avg state of health of allocated packs | **90.4%** | 80.5% |
-| Avg suitability score | **84.5** | 76.8 |
+| vehicles served | 36 / 50 | 36 / 50 |
+| high/critical-priority served | **73.1%** | 69.2% |
+| unsafe packs allocated | 0 | 0 |
+| avg state of health of allocated packs | **90.4%** | 80.5% |
+| avg suitability score | **84.5** | 76.8 |
 
 ## features
 
@@ -59,7 +59,7 @@ one 8 vCPU / 15 GiB VM (Intel Xeon), Python 3.12, single run. the load generator
 
 **algorithm** (`benchmarks/bench_core.py`, [raw](benchmarks/results-2026-10-19/core.txt)). the larger fleets are the official rows cloned 10x and 50x:
 
-| Fleet / requests | classify p50 | allocate (proposed) p50 / p95 | allocate (baseline) p50 |
+| fleet / requests | classify p50 | allocate (proposed) p50 / p95 | allocate (baseline) p50 |
 |---|---|---|---|
 | 200 / 50 (official) | 0.39 ms | **4.3 ms / 5.0 ms** | 2.7 ms |
 | 2,000 / 500 | 3.7 ms | 439 ms / 468 ms | 281 ms |
@@ -69,7 +69,7 @@ peak Python heap for the 10,000-pack run: 7.1 MB.
 
 **HTTP API** (`uvicorn --workers 4`, k6 closed-loop VUs, [k6 output](benchmarks/results-2026-10-19/k6-output.txt), [summary JSON](benchmarks/results-2026-10-19/k6-summary.json)):
 
-| Endpoint | Concurrency (VUs) | Requests | Throughput (req/s) | p50 (ms) | p95 (ms) | p99 (ms) | Max (ms) | Error rate |
+| endpoint | concurrency (VUs) | requests | throughput (req/s) | p50 (ms) | p95 (ms) | p99 (ms) | max (ms) | error rate |
 |---|---|---|---|---|---|---|---|---|
 | `GET /health` | 50 | 308,771 | 15,439 | 3.0 | 5.3 | 7.3 | 75.3 | 0.00% |
 | `GET /classifications/summary` | 50 | 8,671 | 434 | 110.7 | 184.7 | 216.8 | 396.8 | 0.00% |
