@@ -83,3 +83,7 @@ in this local run the API handled 170 full pipeline runs/s at p95 82 ms on the o
 - `GET /classifications/summary` re-reads and re-classifies the csv on every call. it should be cached.
 - `POST /pipeline/run` accepts arbitrary `battery_csv` / `output_dir` paths. don't expose the api publicly without restricting them.
 - license: proprietary competition submission (see `pyproject.toml`).
+
+---
+
+built by [sreecharan desu](https://www.sreecharandesu.in) · [more projects](https://www.sreecharandesu.in/work)
