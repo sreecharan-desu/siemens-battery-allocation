@@ -24,3 +24,5 @@ outputs/*.png
 # Uploaded data (user files — keep folder)
 data/uploads/*
 !data/uploads/.gitkeep
+.vercel
+.env*
